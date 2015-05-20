@@ -365,6 +365,6 @@ app.get('/write/', function (request, response) {
 	ctrl.trigger('newData', 'hejho');
 });
 app.use(express.static(__dirname + '/client'));
-app.listen(8000);
+app.listen(8000, process.env.OPENSHIFT_NODEJS_IP);
 // Put a friendly message on the terminal
 console.log("Server running at http://127.0.0.1:8000/");
