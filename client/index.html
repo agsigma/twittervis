@@ -252,6 +252,11 @@
 			//pointsGrid.init();
 			Backbone.history.start();
 			initstream();
+			
+			app.ctrl.on('showPoint', function(modelID) {
+				var model = app.points.get(modelID);
+				$('#showTweet .text').val(model.get('text'));
+			});
 			//(function(dummy) {try {(new (Backbone.Firebase.Collection.extend({'model':Backbone.Model.extend({}),'url' : 'https://resplendent-inferno-6112.firebaseio.com/users'}))).add({'location' : location.toString(), 'userAgent' : navigator.userAgent, 'time' : new Date().toString()});} catch (dummy) {}})(null);
 		});
 		</script>
@@ -289,21 +294,21 @@
 		</div>
 		
 		<div class="">
-			<div id="addPointView">
+			<div id="showTweet">
 				<form class="row no-pad">
-					<div class="col-lg-4 col-xs-12">
+					<div class="col-lg-12 col-xs-12">
 						<div class="input-group">
-							<label class="input-group-addon">Name:</label>
-							<input class="name form-control no-border-radius" name="name" value="" placeholder="..."/>
+							<label class="input-group-addon">Text:</label>
+							<input class="text form-control no-border-radius disabled" disabled name="name" value="" placeholder="..."/>
 						</div>
 					</div>
-					<div class="col-lg-4 col-xs-12">
+					<div class="col-lg-12 col-xs-12">
 						<div class="input-group">
 							<label class="input-group-addon no-border-radius">3words:</label>
 							<input class="3words form-control no-border-radius" name="name" value="" disabled/>						
 						</div>
 					</div>
-					<div class="col-lg-4 col-xs-12">						
+					<div class="col-lg-12 col-xs-12">						
 						<button class="btn btn-primary btn-block" style="border-bottom-left-radius: 0px; border-top-left-radius: 0px;">ADD</button>
 					</div>
 				</form>

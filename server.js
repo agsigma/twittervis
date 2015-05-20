@@ -213,27 +213,22 @@ var moa = new myOAuth({
 
 var globregexps = new CRegexps();
 
-console.log("---\n---\n---\n---");
-query = moa.getQuery();
-console.log(moa.getQuery());
 
-var processStatus = function(status) {
-	if (status.geo || status.place || status.location) {
-		console.log(status.place);
-		console.log(status.geo);
-		console.log(status.text);
-		console.log(status.location);
-		console.log('--');					
-	} else {
-		//console.log('--' + status.text);			
-	}	
-}
+
 
 var ctrl = _.extend({}, Backbone.Events);
 var twitterReq = null;
+var reconnectTimeout = 10000;
 
 // connect to twitter stream
-if (true) {
+var connectToTwitter = function() {	
+	var jsonsNo = 0, jsonsNo2;
+	var twitterReq = null, query, interval;
+	console.log('connecting to twitter stream');
+	query = moa.getQuery();
+	console.log(moa.getQuery());
+	console.log("---\n---\n---\n---");
+	
 	twitterReq = request({
 		url : query.url + '?' + query.queryParams,
 		headers : {
@@ -242,7 +237,7 @@ if (true) {
 		gzip :false
 		
 	});
-	twitterReq.on('response', function(response) {
+	twitterReq.on('response', function(response) {			
 		var e;
 		response.setEncoding('utf8');
 		console.log(response.statusCode) // 200
@@ -252,6 +247,7 @@ if (true) {
 		var data = '';
 		response.on('data', function (chunk) {
 			var pos, json;
+			reconnectTimeout = 10000;
 			data+=chunk;
 			pos = data.search("\r\n");
 			//console.log(data.length, data.search("\r\n"), data.search("\r\n"), pos);
@@ -261,14 +257,19 @@ if (true) {
 			if (!!json) {
 				//console.log(json.length);
 				//console.log(data.length, json.length);
-				try{
-					jsonObj = JSON.parse(json);				
+				try{		
+					jsonsNo++;								
 					//console.log(JSON.stringify(jsonObj, null, '\t'));
-					if (globregexps.regexp.test(json)) {
+					if (globregexps.regexp.test(json)) {						
+						jsonObj = JSON.parse(json);				
 						ctrl.trigger('newData', jsonObj);					
+					} else {						
+						if(jsonsNo % 100 == 0) {
+							console.log('Odebrano ' + jsonsNo);
+						}					
 					}
 					//processStatus(json);						
-				} catch(e){
+				} catch(e){					
 					console.log('not json');
 				}			
 			}
@@ -276,10 +277,35 @@ if (true) {
 			//console.log(data);		
 		});
 	});
+	twitterReq.on('end', function(err) {
+		console.log('END');
+		console.log(err);		
+	});
 	twitterReq.on('error', function(err) {
 		console.log('ERROR:');
 		console.log(err);
 	});
+	interval = setInterval((function() {
+		return function() {
+			console.log('interval', jsonsNo, jsonsNo2);
+			if(jsonsNo === jsonsNo2 || jsonsNo === 0) {
+				console.log('aborted twitterReq');
+				twitterReq.abort();
+				clearTimeout(interval);				
+				setTimeout(function() {
+					connectToTwitter();
+				}, reconnectTimeout);
+				reconnectTimeout *= 2; 
+				//delete(twitterReq);
+				//console.log(twitterReq);
+			}			
+			jsonsNo2 = jsonsNo;
+		};
+	})(), 5000);
+	
+}
+if (true) {	
+	connectToTwitter();
 }
 
 

@@ -81,7 +81,7 @@ app.ctrl.on('showPoint', function(id, options) {
 	if (!!model && _.intersection(model.keys(), ['lon', 'lat', 'text']).length == 3) {
 		// dodaje +1 do licznika wyswietlen
 		app.points.trigger('newView', model.get('id'));					
-		alert(model.get('text'));
+		// alert(model.get('text'));
 		if (options.centerMap) {
 			app.ctrl.zoomToPoint(model.get('lon'), model.get('lat'), false, options.animate);		
 		}
