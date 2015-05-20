@@ -1,0 +1,84 @@
+// Load the http module to create an http server.
+var http = require('http');
+var Twitter = require('twitter');
+var _ = require('underscore');
+ 
+var client = new Twitter({
+  consumer_key: 'GV0aHbfIFLmrioHFxKgXEbPId',
+  consumer_secret: 'fPlb3AWkozvP38MzKF8yzoZTyvJ0OTUb69LS3ePwK2VsELF6wm',
+  access_token_key: '3245017343-H8FjkrGFB9UGxnOdNwIAi9rcPwOZn2CBsfaTL8r',
+  access_token_secret: 'y8fEdVhy5kqXjoINpkpPuzc9OjGOQPJ03hWwY076jhvTZ'
+});
+  
+var params = {
+	'q': 'fire',
+	'exclude_replies' : true,
+	'trim_user' : true,
+	'contributor_details' : false,
+	//'result-type' : 'recent'
+	'since_id' : 597449436676100100
+};
+
+var sinceId = 597449436676100100;
+var getTweets = function() {
+	params['since_id'] = sinceId;
+	client.get('search/tweets', params, function(error, tweets, response){
+		var statuses;
+		if (!error) {
+			// console.log(tweets);
+			_.chain(tweets.statuses)
+				.filter(function(status) {				
+					return !!status.geo;
+				}).each(function(status) {
+					console.log(status.place);
+					console.log(status.geo);
+					console.log(status.text);
+					console.log(status.location);
+					console.log('--');					
+					console.log('--');
+					console.log('--');
+				});			
+			_.chain(tweets.statuses)
+				.sortBy(function(status) {return status.id;})
+				.last(2)
+				.each(function(status) {
+					sinceId = Math.max(sinceId, Number(status.id));
+					console.log(status.id);					
+				});			
+		} else {
+			console.log(error);
+		}
+	});
+}
+
+/*setInterval(function() {
+	getTweets();
+}, 5000);*/
+client.stream('statuses/filter', {track: 'fire', 'location' : '-179,89,179,-89'}, function(stream) {
+  stream.on('data', function(tweet, d2, d3) {    
+	 if (tweet.geo){
+		//console.log(tweet);
+		console.log(tweet.text);
+		console.log(tweet.geo);
+		console.log(tweet.coordinates);
+		console.log(tweet.place);
+		console.log('--');
+	}
+  });
+ 
+  stream.on('error', function(error) {
+    throw error;
+  });
+});
+	
+// Configure our HTTP server to respond with Hello World to all requests.
+var server = http.createServer(function (request, response) {
+	response.writeHead(200, {"Content-Type": "text/plain"});	
+	response.end("Hello World\n");
+});
+
+// Listen on port 8000, IP defaults to 127.0.0.1
+server.listen(8000);
+
+// Put a friendly message on the terminal
+console.log("Server running at http://127.0.0.1:8000/");
