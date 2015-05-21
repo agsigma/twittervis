@@ -36,13 +36,13 @@
 			}
 			
 			#mapPanel {
-				height: 400px;
+				/*height: 400px;
 				position:relative;
-				box-shadow: 0px 0px 1px 0px #666;
+				box-shadow: 0px 0px 1px 0px #666;*/
 			}
 			
 			#mapPanel .navigation {				
-				height: 100%;				
+				/*height: 100%;				*/
 			}
 			#mapPanel .navigation .nav li{				
 				cursor: pointer;
@@ -76,14 +76,18 @@
 			.no-border-radius {
 				border-radius: 0px !important;
 			}
+			.row {
+				margin-bottom: 0px;
+			}
 			
+			/*
 			.thumbnail {
 				width: 100px;
 				height: 100px;
 				border: 1px solid #666;
 				margin: 0px 10px 10px 0px;
 				display: inline;
-			}
+			}*/
 
 		</style>		
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/bootstrap.min.js" type="text/javascript"></script>
@@ -96,8 +100,11 @@
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.5/jquery.fancybox.min.css" type="text/css">			
 		<!--<script src="js/main.js" type="text/javascript"></script>-->
 		<script src="js/CMap.js" type="text/javascript"></script>
+		<script src="js/CNavigationView.js" type="text/javascript"></script>		
 		<script src="js/base.js" type="text/javascript"></script>		
 		<script>		
+		_.templateSettings.variable = "data";
+			
 		(function($) {
 			$.QueryString = (function(a) {
 				if (a == "") return {};
@@ -200,8 +207,9 @@
 									console.log(' --- ', url);
 								});
 								instagram = getInstagram(m)[0];
+								//app.imagesView.addImage('http://instagr.am/p/' + instagram + '/media/');
 								// dodajemy miniaturke;
-								img = $('<img />')
+								/*img = $('<img />')
 									.addClass('thumbnail')
 									.attr('src', 'http://instagr.am/p/' + instagram + '/media/');
 								a$ = $('<a />')
@@ -210,7 +218,7 @@
 									.attr('rel', 'dgagkkgjhadskhgkhgjdas')
 									.append(img)
 									.appendTo('body');								
-								$('a.gallery').fancybox();
+								$('a.gallery').fancybox();*/
 							} else {
 								instagram = null;
 							}
@@ -239,6 +247,25 @@
 			}
 		}		
 				
+		CImagesView = Backbone.View.extend({
+			'tagName' : 'div',			
+			'className' : 'row row-nopad',
+			'initialize' : function() {
+				this.$el.css('padding-top', '20px');				
+				this.imageTemplate = _.template($('#imageTemplate').html());
+			},
+			'addImage' : function(model, imageUrl) {
+				var img;
+				img = $('<div class="col-xs-6 col-xs-4 col-md-3" />');								
+				//img.css('height', '300px');
+				img.html(this.imageTemplate({'model' : model}));
+				img.appendTo(this.$el);
+				//this.$el.find('a').fancybox();
+			},
+			'render' : function() {
+				return this;
+			}
+		});		
 		
 		$(document).ready(function() {	
 			if (!!$.QueryString.keyword) {
@@ -249,9 +276,34 @@
 				$('form input[name="exclude"]').val($.QueryString.exclude);
 			}
 			app.map.init();	
+			
+			app.imagesView = new CImagesView();
+			
+			app.navigationView = new CNavigationView('#navigationMenu', '#navigationPanel');
+			app.navigationView.addTab({
+				'name' : 'images',
+				'view' : app.imagesView
+			});
+			app.navigationView.tabs.push({
+				'name' : 'home',
+				'view' : null//$('#mapPanel')[0]
+			});
+			$(app.navigationView.navElem)
+				.find('[data-tabName="home"]')
+				.click(function() {							
+					app.navigationView.showPanel($(this).attr('data-tabName'));
+				});			
+			app.navigationView.init();
+			
 			//pointsGrid.init();
 			Backbone.history.start();
 			initstream();
+			
+			app.points.on('add', function(model) {
+				if (!!model.get('instagram')) {
+					app.imagesView.addImage(model);
+				}
+			});
 			
 			app.ctrl.on('showPoint', function(modelID) {
 				var model = app.points.get(modelID);
@@ -262,58 +314,59 @@
 		</script>
 	</head>
 	<body>	
-	<div class="container">
-		<div class="row no-pad">
-			<!--<h2 id="title">&nbsp;</h2>
-			<h3 id="what3words">&nbsp;</h3>
-			-->
-			<br />
+	<div class="container-fluid" style="padding: 0px;">		
+		<div class="row no-pad" id="navigationMenu">						
+			<ul class="nav nav-pills">						
+				<li data-tabName="home" style="width: 50%; text-align: center; margin-left: 0px;"><a class="no-border-radius">Home</a></li>	
+				<li data-tabName="images" style="width: 50%; text-align: center; margin-left: 0px;"><a class="no-border-radius">Images</a></li>				
+			</ul>											
 		</div>
-		<div class="row no-pad" id ='mapPanel'>			
-			<div class="navigation col-lg-4 col-md-4 col-sm-5 col-xs-6" style="position:relative; height: 100%;">												
-				<ul class="navigationMenu nav nav-justified nav-pills" style="position: absolute; width: 100%; top: 0px; cursor: pointer;">
-					<li role="presentation"><a class="no-border-radius" onclick="findCenter();">CENTER</a></li>
-					<li role="presentation" data-tabName="points"><a class="no-border-radius">Near</a></li>
-					<li role="presentation" data-tabName="description"><a class="no-border-radius">Description</a></li>
-				</ul>													
-				<form method="get" action="" style="margin-top: 100px;">
-					<div class="input-group">
-						<label class="input-group-addon">Include:</label>
-						<input class="name form-control no-border-radius" name="keyword" value="" placeholder="rain"/>						
-					</div>					
-					<div class="input-group">
-						<label class="input-group-addon">Exclude:</label>
-						<input class="name form-control no-border-radius" name="exclude" value="" placeholder="pressure"/>						
-					</div>										
-					<button type="submit" class="btn btn-success btn-block no-border-radius">UPDATE</button>
-				</form>			
+	</div>
+	<div style="position: fixed; top: 40px; bottom: 0px; left: 0px; right:0px;">		
+		<div class="container-fluid" style="height: 100%; padding: 0px;" id="navigationPanel">			
+			<div data-tabName="images" style="height: 100%; position: relative; overflow-y: auto;">
 			</div>
-			<div class="map col-lg-8  col-md-8 col-sm-7 col-xs-6">				
-				<div id="olmap" class="fill"></div>
-			</div>
-		</div>
-		
-		<div class="">
-			<div id="showTweet">
-				<form class="row no-pad">
-					<div class="col-lg-12 col-xs-12">
-						<div class="input-group">
-							<label class="input-group-addon">Text:</label>
-							<input class="text form-control no-border-radius disabled" disabled name="name" value="" placeholder="..."/>
+			<div id='mapPanel' style="height: 100%; position: relative;" data-tabName="home">
+				<div class="row no-pad" style="position: absolute; top:0px; left: 0px; right: 0px; bottom: 85px;">			
+					<div class="navigation col-lg-4 col-md-4 col-sm-5 col-xs-6" style="position:relative; height: 100%;">																	
+						<form method="get" action="" style="">
+							<div class="input-group">
+								<label class="input-group-addon">Include:</label>
+								<input class="name form-control no-border-radius" name="keyword" value="" placeholder="rain"/>						
+							</div>					
+							<div class="input-group">
+								<label class="input-group-addon">Exclude:</label>
+								<input class="name form-control no-border-radius" name="exclude" value="" placeholder="pressure"/>						
+							</div>										
+							<button type="submit" class="btn btn-success btn-block no-border-radius">UPDATE</button>
+						</form>			
+					</div>
+					<div class="map col-lg-8  col-md-8 col-sm-7 col-xs-6">				
+						<div id="olmap" class="fill"></div>
+					</div>
+				</div>
+				<div id="showTweet" style="position: absolute; bottom: 0px; left: 0px; right: 0px;">
+					<form class="row no-pad" style="margin-bottom: 0px;">
+						<div class="col-lg-12 col-xs-12">
+							<div class="input-group">
+								<label class="input-group-addon">Text:</label>
+								<input class="text form-control no-border-radius disabled" disabled name="name" value="" placeholder="..."/>
+							</div>
 						</div>
-					</div>
-					<div class="col-lg-12 col-xs-12">
-						<div class="input-group">
-							<label class="input-group-addon no-border-radius">3words:</label>
-							<input class="3words form-control no-border-radius" name="name" value="" disabled/>						
+						<div class="col-lg-12 col-xs-12">
+							<div class="input-group">
+								<label class="input-group-addon no-border-radius">3words:</label>
+								<input class="3words form-control no-border-radius" name="name" value="" disabled/>						
+							</div>
 						</div>
-					</div>
-					<div class="col-lg-12 col-xs-12">						
-						<button class="btn btn-primary btn-block" style="border-bottom-left-radius: 0px; border-top-left-radius: 0px;">ADD</button>
-					</div>
-				</form>
-			</div>
+						<div class="col-lg-12 col-xs-12">						
+							<button class="btn btn-primary btn-block" style="border-bottom-left-radius: 0px; border-top-left-radius: 0px;">ADD</button>
+						</div>
+					</form>
+				</div>
+			</div>						
 		</div>
+	</div>
 		
 		<div class="row no-pad pointsTableView">
 		</div>
@@ -327,5 +380,15 @@
 		<p><%- data.model.get('words') %></p>
 	
 	</script>
+	
+	<script type="text/template" id="imageTemplate">								
+		<div class="thumbnail">
+			<img src="http://instagr.am/p/<%=data.model.get('instagram')%>/media/?ext=.jpg">
+			<div class="caption" style="height: 120px;">				
+				<p><%- data.model.get('text') %></p>				
+			</div>
+		</div>
+	</script>	
+
   </body>
 </html>

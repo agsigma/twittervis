@@ -324,10 +324,9 @@ app.get('/stream/:phrase/:exclude', function (request, response) {
 	var requestId = _.uniqueId();
 	var resNo = 0;	
 	var closeConnection;
+	var dummyE;
 	phrase = phrase || "new\s*york";
-	//phrase = phrase || /london/i;	
-	regexp = new RegExp(phrase, 'i');
-	exclude = new RegExp(exclude, 'i');
+	//phrase = phrase || /london/i;		
 	
 	request.socket.setTimeout(Infinity);
 	response.writeHead(200, {
@@ -338,15 +337,26 @@ app.get('/stream/:phrase/:exclude', function (request, response) {
 	});		
 	
 	response.write('\n');
-	globregexps.add(requestId, phrase);
-	console.log('Otwarto połączenie z ' + regexp + ' : ' +exclude);	
-	console.log('globregexp ' + globregexps.regexp.toString());	
 	
 	closeConnection = function() {
 		console.log('Zamknięto połączenie z ' + phrase + ' : ' +exclude);
 		globregexps.remove(requestId);
 		ctrl.off('newData', streamWritter);
 	}
+	
+	try {
+		regexp = new RegExp(phrase, 'i');
+		exclude = new RegExp(exclude, 'i');
+		globregexps.add(requestId, phrase);
+	} catch(dummyE) {
+		response.write('event: error\n');
+		response.write('data: Invalid regexp.\n\n');
+		closeConnection();
+		return;
+	}
+	console.log('Otwarto połączenie z ' + regexp + ' : ' +exclude);	
+	console.log('globregexp ' + globregexps.regexp.toString());	
+		
 	// TODO!!! usuwanie listenera po odlaczeniu sie klienta od streama
 	streamWritter = function(json) {
 		var dummyE;		

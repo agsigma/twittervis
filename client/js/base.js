@@ -78,13 +78,7 @@ app.ctrl.on('showPoint', function(id, options) {
 		'animate' : true
 	}, options || {});	
 	model = app.points.get(id);
-	if (!!model && _.intersection(model.keys(), ['lon', 'lat', 'text']).length == 3) {
-		// dodaje +1 do licznika wyswietlen
-		app.points.trigger('newView', model.get('id'));					
-		// alert(model.get('text'));
-		if (options.centerMap) {
-			app.ctrl.zoomToPoint(model.get('lon'), model.get('lat'), false, options.animate);		
-		}
+	if (!!model && _.intersection(model.keys(), ['lon', 'lat', 'text']).length == 3) {		
 	}		
 	app.router.navigate('show/' + id, {'trigger' : false});
 });
@@ -93,19 +87,6 @@ app.ctrl.on('positionUpdated', function(x, y) {
 });
 app.ctrl.on('updatePosition',  function(options) {
 	options = options || {};
-	if (options.words) {
-		console.log(options.words);
-		console.log('updatePosition');
-		$.getJSON('https://api.what3words.com/w3w?key=5Z2J6DKA&string=' + options.words)
-			.done(function(res) {			
-				var pan;
-				console.log(res);	
-				app.router.navigate('3words/' + options.words, {'trigger' : false});
-				if (!!res && !!res.position) {				
-					app.ctrl.zoomToPoint(res.position[1], res.position[0], true);					
-				}
-			});
-	}	
 });
 app.ctrl.zoomToPoint = function(lon_x, lat_y, moveCursor, animate) {
 	app.map.zoomToPoint(lon_x, lat_y, moveCursor, animate);
