@@ -79,6 +79,7 @@
 			.row {
 				margin-bottom: 0px;
 			}
+									
 			
 			/*
 			.thumbnail {
@@ -88,16 +89,20 @@
 				margin: 0px 10px 10px 0px;
 				display: inline;
 			}*/
+			
+			.ol-control.layer-switcher {
+				top: 0.5em;
+			}
 
-		</style>		
-		<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/bootstrap.min.js" type="text/javascript"></script>
+		</style>				
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/ol3/3.5.0/ol.js" type="text/javascript"></script>
 		<script src="http://rawgit.com/walkermatt/ol3-layerswitcher/master/src/ol3-layerswitcher.js" type="text/javascript"></script>		
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="text/javascript"></script>
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js" type="text/javascript"></script>
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.2/backbone-min.js" type="text/javascript"></script>						
 		<script src="http://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.5/jquery.fancybox.min.js" type="text/javascript"></script>
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.5/jquery.fancybox.min.css" type="text/css">			
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.5/jquery.fancybox.min.css" type="text/css">	
+		<script src="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/js/bootstrap.min.js" type="text/javascript"></script>
 		<!--<script src="js/main.js" type="text/javascript"></script>-->
 		<script src="js/CMap.js" type="text/javascript"></script>
 		<script src="js/CNavigationView.js" type="text/javascript"></script>		
@@ -170,8 +175,39 @@
 			}
 			return urls;
 		}
-			
+						
 		queue = [];
+		queue.addTweet = function(tweet) {
+			var lon, lat, instagram, dummyE;
+			try {
+				if (tweet.place) {
+					lon = tweet.place.bounding_box.coordinates[0][0][0];
+					lat = tweet.place.bounding_box.coordinates[0][0][1];
+					if (!tweet.isBlank) {
+						// instagram i zdjecia
+						if (getInstagram(tweet).length) {
+							console.log('instagram: ');
+							_.each(getInstagram(tweet), function(url) {
+								console.log(' --- ', url);
+							});
+							instagram = getInstagram(tweet)[0];
+						
+						} else {
+							instagram = null;
+						}
+						this.push({lon:lon,lat:lat,text:tweet.text,instagram:instagram});
+					}
+				}
+			} catch(dummyE) {
+				console.log('queue ', dummyE);
+			}
+		}
+		queue.empty = function() {
+			while(this.length) {
+				this.pop();
+			}
+		}
+		
 		var jsonStream;
 		initstream = function() {
 			var keyword = "party";
@@ -195,63 +231,30 @@
 				// handle message
 				// console.log(e.data);
 				try {
-					m = JSON.parse(e.data);
-					if (m.place) {
-						lon = m.place.bounding_box.coordinates[0][0][0];
-						lat = m.place.bounding_box.coordinates[0][0][1];
-						if (!m.isBlank) {						
-							// instagram i zdjecia
-							if (getInstagram(m).length) {
-								console.log('instagram: ');
-								_.each(getInstagram(m), function(url) {
-									console.log(' --- ', url);
-								});
-								instagram = getInstagram(m)[0];
-								//app.imagesView.addImage('http://instagr.am/p/' + instagram + '/media/');
-								// dodajemy miniaturke;
-								/*img = $('<img />')
-									.addClass('thumbnail')
-									.attr('src', 'http://instagr.am/p/' + instagram + '/media/');
-								a$ = $('<a />')
-									.attr('href', 'http://instagr.am/p/' + instagram + '/media/?ext=.jpg')
-									.addClass('gallery')
-									.attr('rel', 'dgagkkgjhadskhgkhgjdas')
-									.append(img)
-									.appendTo('body');								
-								$('a.gallery').fancybox();*/
-							} else {
-								instagram = null;
-							}
-							//console.log(lon, lat, m.text);
-							queue.push({lon:lon,lat:lat,text:m.text,instagram:instagram});
-							//app.points.add({lon:lon,lat:lat,text:m.text});
-							if (queue.length>0) {
-								app.points.add(queue);
-								queue = [];
-							}
-							while (app.points.length>1000) {
-								//app.points.shift();
-							}							
-						} else {							
-							//pointsGrid.addOne(lon, lat);
-						}
+					m = JSON.parse(e.data);					
+					queue.addTweet(m);
+					if (queue.length>0) {
+						app.points.add(queue);
+						queue.empty();
 					}
 				} catch (dummyE) {console.log(dummyE);}
 			};
 			jsonStream.onerror = function (e) {
 				console.log('stream error: ', e);
 				jsonStream.close();
-				if (confirm((!!e.data ? e.data : 'Error occured') + "\nDo you want to reconnect?")) {									
-					initstream();					
+				if (true || confirm((!!e.data ? e.data : 'Error occured') + "\nDo you want to reconnect?")) {									
+					setTimeout(function() {
+						initstream();
+					}, 5000);
 				}
 			}
 		}		
 				
 		CImagesView = Backbone.View.extend({
 			'tagName' : 'div',			
-			'className' : 'row row-nopad',
+			'className' : 'row no-pad',
 			'initialize' : function() {
-				this.$el.css('padding-top', '20px');				
+				this.$el.css({'padding-top' : '20px'});				
 				this.imageTemplate = _.template($('#imageTemplate').html());
 			},
 			'addImage' : function(model, imageUrl) {
@@ -265,9 +268,113 @@
 			'render' : function() {
 				return this;
 			}
-		});		
+		});	
+		
+		var CSim = function() {
+			this.reset();
+		}
+		CSim.prototype = {
+			'reset' : function() {
+				this.v = {'x' : 0, 'y' : 0};
+				this.acc = {'x' : 0, 'y' : 0};
+				this.pos = {
+					'x' : app.map.cursor.x,
+					'y' : app.map.cursor.y
+				};
+			},
+			'calcAcc' : function(pos) {				
+				var acc = {'x':0,'y':0}, dist, pX, pY;
+				if (!pos) {
+					pos = {
+						'x' : this.pos.x,
+						'y' : this.pos.y
+					};
+				}
+				app.points.each(function(poi) {
+					pX = poi.get('lon');
+					pY = poi.get('lat');
+					dist = Math.max(_.geoDist(pX, pY, pos.x, pos.y), 20);
+					//console.log(dist, pX, pY, pos);
+					acc.x += (pX-pos.x)/dist/dist;
+					acc.y += (pY-pos.y)/dist/dist;
+				});
+				return acc;
+			},
+			'step' : function(mul) {
+				var drag;
+				mul = mul | 10;
+				this.acc.x = 0;
+				this.acc.y = 0;					
+				this.acc = this.calcAcc();
+				this.v.x += this.acc.x;
+				this.v.y += this.acc.y;
+				drag = this.v.x*this.v.x + this.v.y*this.v.y;
+				this.v.x = Math.log(1+Math.abs(this.v.x)*10) * Math.sign(this.v.x) / 10;
+				this.v.y = Math.log(1+Math.abs(this.v.y)*10) * Math.sign(this.v.y) / 10;
+				this.pos.x = this.pos.x+this.v.x*mul;
+				this.pos.y += this.v.y*mul;				
+			},
+			'animate' : function() {
+				var self = this;
+				this.reset();
+				clearTimeout(this.animClock);
+				this.animClock = setInterval(function() {
+					self.step(10); 
+					self.step(10); 					
+					self.step(10); 
+					self.step(10); 			
+					app.map.setCursor(self.pos.x, self.pos.y);
+					//console.log(self.acc, self.v);
+				}, 100);
+			}
+		}	
+		
+		var sim = new CSim();
+		
+		var findCenter = function() {
+			var pois = app.points.toJSON(), findCenter, removeOne, l, center;
+			pois = _.map(pois, function(poi, i) {return [i, poi];});
+			l = pois.length;
+			pois = _.object(pois);			
+			// srodek ciezkosci
+			findCenter = function() {
+				var x=0, y=0, l=0;
+				_.each(pois, function(poi) {
+					x+=poi.lon;
+					y+=poi.lat;
+					l++;
+				});
+				x/=l;
+				y/=l;
+				return [x,y,l];
+			}
+			// usuwa najbardziej odlegly punkt z pois
+			removeOne = function(x,y) {
+				var maxKey = null, maxDist = -1, dist, l=0;
+				_.each(pois, function(poi, key) {
+					dist = _.geoDist(poi.lon, poi.lat, x, y);
+					if (dist > maxDist) {
+						maxKey = key;
+						maxDist = dist;
+					}
+					l++;
+				});
+				delete(pois[maxKey]);
+				return l-1;
+			}
+			
+			while(l > 3) {
+				center = findCenter();
+				l = removeOne(center[0], center[1]);
+			}
+			center = findCenter();
+			return center;
+		}
+		
 		
 		$(document).ready(function() {	
+			$.QueryString.keyword = $.QueryString.keyword || '(\srain|storm|lightning|tornado|sunset|sunrise|clouds).*https';
+			$.QueryString.exclude = $.QueryString.exclude || 'pressure|humidity|°|windspeed';
 			if (!!$.QueryString.keyword) {
 				//keyword = $.QueryString.keyword;
 				$('form input[name="keyword"]').val($.QueryString.keyword);
@@ -295,9 +402,7 @@
 				});			
 			app.navigationView.init();
 			
-			//pointsGrid.init();
-			Backbone.history.start();
-			initstream();
+			//pointsGrid.init();			
 			
 			app.points.on('add', function(model) {
 				if (!!model.get('instagram')) {
@@ -305,11 +410,24 @@
 				}
 			});
 			
-			app.ctrl.on('showPoint', function(modelID) {
+			app.ctrl.on('showPoint', function(modelID) {				
 				var model = app.points.get(modelID);
-				$('#showTweet .text').val(model.get('text'));
+				if (!!model) {
+					$('#showTweet .text').val(model.get('text'));
+				}
 			});
-			//(function(dummy) {try {(new (Backbone.Firebase.Collection.extend({'model':Backbone.Model.extend({}),'url' : 'https://resplendent-inferno-6112.firebaseio.com/users'}))).add({'location' : location.toString(), 'userAgent' : navigator.userAgent, 'time' : new Date().toString()});} catch (dummy) {}})(null);
+						
+			
+			Backbone.history.start();
+			// pobieramy tweety z kolejki na serwerze
+			$.getJSON('/last/' + $.QueryString.keyword + '/' + $.QueryString.exclude + '')
+				.done(function(res) {					
+					_.each(res, function(tweet) {queue.addTweet(tweet);})
+					app.points.add(queue);
+					queue.empty();
+				});
+			// laczymy sie ze strumieniem tweetow z serwera
+			initstream();			
 		});
 		</script>
 	</head>
@@ -327,19 +445,31 @@
 			<div data-tabName="images" style="height: 100%; position: relative; overflow-y: auto;">
 			</div>
 			<div id='mapPanel' style="height: 100%; position: relative;" data-tabName="home">
-				<div class="row no-pad" style="position: absolute; top:0px; left: 0px; right: 0px; bottom: 85px;">			
+				<div class="row no-pad" style="position: absolute; top:0px; left: 0px; right: 0px; bottom: 35px;">			
 					<div class="navigation col-lg-4 col-md-4 col-sm-5 col-xs-6" style="position:relative; height: 100%;">																	
+						
+						<p class="bg-info" style="margin: 0px; padding: 5px;">Tweets are filtered based on conditions in fields <em>Include</em> and <em>Exclude</em>, tweet must contain phrase from <em>Include</em> field and mustn't contain phrase from field <em>Exclude</em>. You can enter regular expression in any of fields.</p>
+						
 						<form method="get" action="" style="">
-							<div class="input-group">
-								<label class="input-group-addon">Include:</label>
+							<div class="input-group">							
+								<label class="input-group-addon no-border-radius">Include:</label>
 								<input class="name form-control no-border-radius" name="keyword" value="" placeholder="rain"/>						
 							</div>					
-							<div class="input-group">
-								<label class="input-group-addon">Exclude:</label>
+							<div class="input-group">								
+								<label class="input-group-addon no-border-radius">Exclude:</label>
 								<input class="name form-control no-border-radius" name="exclude" value="" placeholder="pressure"/>						
 							</div>										
 							<button type="submit" class="btn btn-success btn-block no-border-radius">UPDATE</button>
+							
+							
 						</form>			
+						<div style="padding-top: 30px;">
+							<button class="btn btn-info btn-block no-border-radius" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">Advanced</button>
+							<div class="collapse well" id="collapseExample">								
+								<!--<button onclick="sim.reset(); sim.animate();return false;" class="btn btn-success btn-block no-border-radius">LOCATE CENTER</button>-->
+								<button onclick="c=findCenter(); app.map.setCursor(c[0], c[1]);return false;" class="btn btn-success btn-block">LOCATE CENTER</button>							
+							</div>
+						</div>
 					</div>
 					<div class="map col-lg-8  col-md-8 col-sm-7 col-xs-6">				
 						<div id="olmap" class="fill"></div>
@@ -352,16 +482,7 @@
 								<label class="input-group-addon">Text:</label>
 								<input class="text form-control no-border-radius disabled" disabled name="name" value="" placeholder="..."/>
 							</div>
-						</div>
-						<div class="col-lg-12 col-xs-12">
-							<div class="input-group">
-								<label class="input-group-addon no-border-radius">3words:</label>
-								<input class="3words form-control no-border-radius" name="name" value="" disabled/>						
-							</div>
-						</div>
-						<div class="col-lg-12 col-xs-12">						
-							<button class="btn btn-primary btn-block" style="border-bottom-left-radius: 0px; border-top-left-radius: 0px;">ADD</button>
-						</div>
+						</div>						
 					</form>
 				</div>
 			</div>						
@@ -384,7 +505,7 @@
 	<script type="text/template" id="imageTemplate">								
 		<div class="thumbnail">
 			<img src="http://instagr.am/p/<%=data.model.get('instagram')%>/media/?ext=.jpg">
-			<div class="caption" style="height: 120px;">				
+			<div class="caption" style="height: 130px; overflow: hidden;">				
 				<p><%- data.model.get('text') %></p>				
 			</div>
 		</div>

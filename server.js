@@ -203,6 +203,37 @@ CRegexps.prototype = {
 	}
 };
 
+var CQueue = function(maxl) {
+	this.maxl = maxl+1;
+	this.t = new Array(maxl);
+	this.p = 0;
+	this.k = 0;
+}
+
+CQueue.prototype = {
+	'push' : function(obj) {
+		this.t[this.k] = obj;
+		this.k = (this.k+1) % this.maxl;
+		if (this.p == this.k) {
+			this.pop();
+		}
+	},
+	'pop' : function(obj) {		
+		res = this[this.p];
+		this.p = (this.p+1) % this.maxl;		
+		return res;
+	},
+	'each' : function(callback) {
+		var l1;
+		callback = callback || function() {};		
+		for (l1 = this.p; l1 != this.k; l1=(l1+1)%this.maxl) {
+			callback(this.t[l1]);
+		}
+	}
+};
+
+
+var tweetsQueue = new CQueue(50001);
 
 var moa = new myOAuth({
 	'appToken' : 'GV0aHbfIFLmrioHFxKgXEbPId',
@@ -258,10 +289,11 @@ var connectToTwitter = function() {
 				//console.log(json.length);
 				//console.log(data.length, json.length);
 				try{		
-					jsonsNo++;								
+					jsonsNo++;					
+					jsonObj = JSON.parse(json);						
+					tweetsQueue.push(jsonObj);						
 					//console.log(JSON.stringify(jsonObj, null, '\t'));
-					if (globregexps.regexp.test(json)) {						
-						jsonObj = JSON.parse(json);				
+					if (globregexps.regexp.test(jsonObj.text)) {												
 						ctrl.trigger('newData', jsonObj);					
 					} else {						
 						if(jsonsNo % 100 == 0) {
@@ -316,6 +348,44 @@ if (true) {
 //server.listen(8000);
 var app = express(), stream=null;
 
+// przeszukuje kolejke tweetow zwraca nie wiecej niz MAXTWEETS tweetow spelniajacych kryteria
+app.get('/last/:phrase/:exclude', function (request, response) {	
+	var dummyE, regexp;
+	var phrase = request.param("phrase");
+	var exclude = request.param("exclude") || 'asdfghnjchisfgbdsi';				
+	var dummyE;
+	var res = [];
+	var MAXTWEETS = 500;
+	phrase = phrase || ".*";
+	console.log('/last/:phrase/:exclude', phrase, exclude);
+	
+	response.writeHead(200, {
+		"Content-Type": "text/json", 
+		'Access-Control-Allow-Origin': '*',
+		'Cache-Control': 'no-cache' 
+	});		
+	
+	try {
+		regexp = new RegExp(phrase, 'i');
+		exclude = new RegExp(exclude, 'i');	
+	} catch(dummyE) {		
+		response.write('Invalid regexp.\n\n');
+		response.end();
+		return;
+	}
+	
+	
+	tweetsQueue.each(function(tweet) {
+		if (regexp.test(tweet.text) && !exclude.test(tweet.text)) {
+			if (res.length < MAXTWEETS) {
+				res.push(tweet);
+			}
+		}
+	});
+	
+	response.end(JSON.stringify(res));		
+});
+
 app.get('/stream/:phrase/:exclude', function (request, response) {	
 	var dummyE, regexp;
 	var phrase = request.param("phrase");
@@ -357,7 +427,8 @@ app.get('/stream/:phrase/:exclude', function (request, response) {
 	console.log('Otwarto połączenie z ' + regexp + ' : ' +exclude);	
 	console.log('globregexp ' + globregexps.regexp.toString());	
 		
-	// TODO!!! usuwanie listenera po odlaczeniu sie klienta od streama
+	
+	// TODO!!! usuwanie listenera po odlaczeniu sie klienta od streama - zrobione
 	streamWritter = function(json) {
 		var dummyE;		
 		//response.write('data: ' + mes + '\n\n');
