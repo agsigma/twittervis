@@ -166,9 +166,9 @@
 		getInstagram = function(tweet) {
 			var dummyE, urls = [];
 			try {
-				_.each(tweet.entities.urls, function(url) {
+				_.each(tweet.entities.urls, function(url) {					
 					if (/instagram/.test(url.expanded_url)) {
-						urls.push(/\/([0-9a-zA-Z]*)\/$/.exec(url.expanded_url)[1]);
+						urls.push(/\/([0-9a-zA-Z\-]*)\/$/.exec(url.expanded_url)[1]);
 					}
 				});
 			} catch(dummyE) {
@@ -184,7 +184,7 @@
 					lon = tweet.place.bounding_box.coordinates[0][0][0];
 					lat = tweet.place.bounding_box.coordinates[0][0][1];
 					if (!tweet.isBlank) {
-						// instagram i zdjecia
+						// instagram i zdjecia						
 						if (getInstagram(tweet).length) {
 							console.log('instagram: ');
 							_.each(getInstagram(tweet), function(url) {
