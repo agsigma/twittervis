@@ -233,7 +233,7 @@ CQueue.prototype = {
 };
 
 
-var tweetsQueue = new CQueue(50001);
+var tweetsQueue = new CQueue(20001);
 
 var moa = new myOAuth({
 	'appToken' : 'GV0aHbfIFLmrioHFxKgXEbPId',
@@ -243,7 +243,6 @@ var moa = new myOAuth({
 });
 
 var globregexps = new CRegexps();
-
 
 
 
@@ -347,6 +346,38 @@ if (true) {
 // Listen on port 8000, IP defaults to 127.0.0.1
 //server.listen(8000);
 var app = express(), stream=null;
+
+
+app.get('/redirect/([a-z\\\.A-Z0-9\\-\\?\\\\]+$)', function (request, response) {	
+	var dummyE, regexp;
+	var url = request.params[0];
+	console.log(url);
+	response.writeHead(200, {
+		"Content-Type": "text/html", 
+		//'Access-Control-Allow-Origin': '*',
+		'Cache-Control': 'no-cache' 
+	});		
+	http.get(url, function (res) {
+		// Detect a redirect
+		if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) {
+			// The location for some (most) redirects will only contain the path,  not the hostname;
+			// detect this and add the host to the path.
+			if (url.parse(res.headers.location).hostname) {
+				// Hostname included; make request to res.headers.location
+				response.end(res.headers.location);
+			} else {
+				  // Hostname not included; get host from requested URL (url.parse()) and prepend to location.
+				  response.end('aaa');
+			}
+
+		// Otherwise no redirect; capture the response as normal            
+		}
+	});
+	
+	/*.on('response', function (error, response) {
+		response.end(response.request.href);
+	});	*/	
+});
 
 // przeszukuje kolejke tweetow zwraca nie wiecej niz MAXTWEETS tweetow spelniajacych kryteria
 app.get('/last/:phrase/:exclude', function (request, response) {	
