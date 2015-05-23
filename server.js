@@ -478,7 +478,8 @@ app.use('/redirect', function(req, response, next) {
 	console.log(req.originalUrl); // '/admin/new'
 	console.log(req.baseUrl); // '/admin'
 	console.log(req.path); // '/new'	
-	var url = req.path.replace(/^\/*/, '');	
+	var url = req.originalUrl.replace(/^.*redirect.*http/, 'http');	
+	console.log(url);
 	request({ 
 		method: "HEAD", 
 		url: url, 
@@ -490,11 +491,11 @@ app.use('/redirect', function(req, response, next) {
 		};
 		if (!!href) {
 			response.writeHead(200, {
-				"Content-Type": "text/html", 
+				"Content-Type": "text/json", 
 				// 'Access-Control-Allow-Origin': '*',
 				'Cache-Control': 'no-cache' 
 			});		
-			// console.log(href);
+			console.log(href);
 			response.end(JSON.stringify(href));
 		} else {
 			response.writeHead(418, {
