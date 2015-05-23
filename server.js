@@ -295,7 +295,7 @@ var connectToTwitter = function() {
 					if (globregexps.regexp.test(jsonObj.text)) {												
 						ctrl.trigger('newData', jsonObj);					
 					} else {						
-						if(jsonsNo % 100 == 0) {
+						if(jsonsNo % 10000 == 0) {
 							console.log('Odebrano ' + jsonsNo);
 						}					
 					}
@@ -347,37 +347,6 @@ if (true) {
 //server.listen(8000);
 var app = express(), stream=null;
 
-
-app.get('/redirect/([a-z\\\.A-Z0-9\\-\\?\\\\]+$)', function (request, response) {	
-	var dummyE, regexp;
-	var url = request.params[0];
-	console.log(url);
-	response.writeHead(200, {
-		"Content-Type": "text/html", 
-		//'Access-Control-Allow-Origin': '*',
-		'Cache-Control': 'no-cache' 
-	});		
-	http.get(url, function (res) {
-		// Detect a redirect
-		if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) {
-			// The location for some (most) redirects will only contain the path,  not the hostname;
-			// detect this and add the host to the path.
-			if (url.parse(res.headers.location).hostname) {
-				// Hostname included; make request to res.headers.location
-				response.end(res.headers.location);
-			} else {
-				  // Hostname not included; get host from requested URL (url.parse()) and prepend to location.
-				  response.end('aaa');
-			}
-
-		// Otherwise no redirect; capture the response as normal            
-		}
-	});
-	
-	/*.on('response', function (error, response) {
-		response.end(response.request.href);
-	});	*/	
-});
 
 // przeszukuje kolejke tweetow zwraca nie wiecej niz MAXTWEETS tweetow spelniajacych kryteria
 app.get('/last/:phrase/:exclude', function (request, response) {	
@@ -495,6 +464,7 @@ app.get('/stream/:phrase/:exclude', function (request, response) {
 	//response.end("Hello World\n");
 });
 
+
 app.get('/write/', function (request, response) {
 	response.writeHead(200, {
 		"Content-Type": "text/html", 		
@@ -502,7 +472,45 @@ app.get('/write/', function (request, response) {
 	response.end("Write\n");
 	ctrl.trigger('newData', 'hejho');
 });
+
+app.use('/redirect', function(req, response, next) {
+	// GET 'http://www.example.com/admin/new'
+	console.log(req.originalUrl); // '/admin/new'
+	console.log(req.baseUrl); // '/admin'
+	console.log(req.path); // '/new'	
+	var url = req.path.replace(/^\/*/, '');	
+	request({ 
+		method: "HEAD", 
+		url: url, 
+		followAllRedirects: true 
+	}, function (error, redirectResponse) {
+		var href = null;
+		if (!!redirectResponse && !!redirectResponse.request) {
+			href = redirectResponse.request.href;
+		};
+		if (!!href) {
+			response.writeHead(200, {
+				"Content-Type": "text/html", 
+				// 'Access-Control-Allow-Origin': '*',
+				'Cache-Control': 'no-cache' 
+			});		
+			// console.log(href);
+			response.end(JSON.stringify(href));
+		} else {
+			response.writeHead(418, {
+				"Content-Type": "text/html", 
+				// 'Access-Control-Allow-Origin': '*',
+				'Cache-Control': 'no-cache' 
+			});		
+			response.end(JSON.stringify(null));
+		}
+	});
+
+});
+
 app.use(express.static(__dirname + '/client'));
+
+
 app.listen(process.env.OPENSHIFT_NODEJS_PORT || 8000, process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1');
 // Put a friendly message on the terminal
 console.log("Server running at 8000/");

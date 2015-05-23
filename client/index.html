@@ -258,11 +258,18 @@
 				this.imageTemplate = _.template($('#imageTemplate').html());
 			},
 			'addImage' : function(model, imageUrl) {
-				var img;
+				var img, self = this;
 				img = $('<div class="col-xs-6 col-xs-4 col-md-3" />');								
 				//img.css('height', '300px');
-				img.html(this.imageTemplate({'model' : model}));
-				img.appendTo(this.$el);
+				$.getJSON("redirect/http://instagr.am/p/" + model.get('instagram') + "/media/")
+					.done(function(res) {
+						var instagramSrc = null
+						if (!!res) {
+							instagramSrc = res;
+						}
+						img.html(self.imageTemplate({'model' : model, 'src' : instagramSrc}));
+						img.appendTo(self.$el);
+					});				
 				//this.$el.find('a').fancybox();
 			},
 			'render' : function() {
@@ -504,7 +511,9 @@
 	
 	<script type="text/template" id="imageTemplate">								
 		<div class="thumbnail">
-			<img src="http://instagr.am/p/<%=data.model.get('instagram')%>/media/?ext=.jpg">
+			<% if (data.src) { %>
+			<img src="<%=data.src%>">
+			<% } %>
 			<div class="caption" style="height: 130px; overflow: hidden;">				
 				<p><%- data.model.get('text') %></p>				
 			</div>
