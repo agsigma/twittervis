@@ -106,6 +106,7 @@
 		<!--<script src="js/main.js" type="text/javascript"></script>-->
 		<script src="js/CMap.js" type="text/javascript"></script>
 		<script src="js/CNavigationView.js" type="text/javascript"></script>		
+		<script src="js/CPointsListView.js" type="text/javascript"></script>		
 		<script src="js/base.js" type="text/javascript"></script>		
 		<script>		
 		_.templateSettings.variable = "data";
@@ -178,11 +179,12 @@
 						
 		queue = [];
 		queue.addTweet = function(tweet) {
-			var lon, lat, instagram, dummyE;
+			var lon, lat, instagram, dummyE, placeName;
 			try {
 				if (tweet.place) {
 					lon = tweet.place.bounding_box.coordinates[0][0][0];
 					lat = tweet.place.bounding_box.coordinates[0][0][1];
+					placeName = tweet.place.name;
 					if (!tweet.isBlank) {
 						// instagram i zdjecia						
 						if (getInstagram(tweet).length) {
@@ -195,7 +197,7 @@
 						} else {
 							instagram = null;
 						}
-						this.push({lon:lon,lat:lat,text:tweet.text,instagram:instagram});
+						this.push({lon:lon,lat:lat,text:tweet.text,instagram:instagram,placeName:placeName});
 					}
 				}
 			} catch(dummyE) {
@@ -242,7 +244,7 @@
 			jsonStream.onerror = function (e) {
 				console.log('stream error: ', e);
 				jsonStream.close();
-				if (true || confirm((!!e.data ? e.data : 'Error occured') + "\nDo you want to reconnect?")) {									
+				if (confirm((!!e.data ? e.data : 'Error occured') + "\nDo you want to reconnect?")) {									
 					setTimeout(function() {
 						initstream();
 					}, 5000);
@@ -423,7 +425,9 @@
 					$('#showTweet .text').val(model.get('text'));
 				}
 			});
-						
+			
+			app.topPointsView = new CPointsListView({'collection' : app.points});
+			app.topPointsView.$el.appendTo('#pointsList');
 			
 			Backbone.history.start();
 			// pobieramy tweety z kolejki na serwerze
@@ -452,62 +456,68 @@
 			<div data-tabName="images" style="height: 100%; position: relative; overflow-y: auto;">
 			</div>
 			<div id='mapPanel' style="height: 100%; position: relative;" data-tabName="home">
-				<div class="row no-pad" style="position: absolute; top:0px; left: 0px; right: 0px; bottom: 35px;">			
-					<div class="navigation col-lg-4 col-md-4 col-sm-5 col-xs-6" style="position:relative; height: 100%;">																	
-						
-						<p class="bg-info" style="margin: 0px; padding: 5px;">Tweets are filtered based on conditions in fields <em>Include</em> and <em>Exclude</em>, tweet must contain phrase from <em>Include</em> field and mustn't contain phrase from field <em>Exclude</em>. You can enter regular expression in any of fields.</p>
-						
-						<form method="get" action="" style="">
-							<div class="input-group">							
-								<label class="input-group-addon no-border-radius">Include:</label>
-								<input class="name form-control no-border-radius" name="keyword" value="" placeholder="rain"/>						
-							</div>					
-							<div class="input-group">								
-								<label class="input-group-addon no-border-radius">Exclude:</label>
-								<input class="name form-control no-border-radius" name="exclude" value="" placeholder="pressure"/>						
-							</div>										
-							<button type="submit" class="btn btn-success btn-block no-border-radius">UPDATE</button>
+				<div class="row no-pad" style="position: absolute; top:0px; left: 0px; right: 0px; bottom: 0px;">			
+					<div class="navigation col-lg-4 col-md-4 col-sm-5 col-xs-6 tab-panel" style="position:relative; height: 100%;">
+						<!-- Nav tabs -->
+						<ul class="nav nav-pills" role="tablist" style="position: absolute; bottom: 0px;">
+							<li role="presentation" class="active">
+								<a href="#appControls" role="tab" data-toggle="tab">Settings</a>
+							</li>
+							<li role="presentation">
+								<a href="#pointsList" role="tab" data-toggle="tab">Messages</a>
+							</li>
 							
-							
-						</form>			
-						<div style="padding-top: 30px;">
-							<button class="btn btn-info btn-block no-border-radius" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">Advanced</button>
-							<div class="collapse well" id="collapseExample">								
-								<!--<button onclick="sim.reset(); sim.animate();return false;" class="btn btn-success btn-block no-border-radius">LOCATE CENTER</button>-->
-								<button onclick="c=findCenter(); app.map.setCursor(c[0], c[1]);return false;" class="btn btn-success btn-block">LOCATE CENTER</button>							
+						</ul>
+						<div class="tab-content" style="overflow-y: auto; position: absolute; top: 0px; bottom: 50px;">
+							<div class="col-xs-12 tab-pane" id="pointsList" >							
+							</div>
+							<div class="col-xs-12 tab-pane active" id="appControls" style="padding: 0px;">
+								<p class="bg-info" style="margin: 0px; padding: 5px;">Tweets are filtered based on conditions in fields <em>Include</em> and <em>Exclude</em>, tweet must contain phrase from <em>Include</em> field and mustn't contain phrase from field <em>Exclude</em>. You can enter regular expression in any of fields.</p>
+								
+								<form method="get" action="" style="">
+									<div class="input-group">							
+										<label class="input-group-addon no-border-radius">Include:</label>
+										<input class="name form-control no-border-radius" name="keyword" value="" placeholder="rain"/>						
+									</div>					
+									<div class="input-group">								
+										<label class="input-group-addon no-border-radius">Exclude:</label>
+										<input class="name form-control no-border-radius" name="exclude" value="" placeholder="pressure"/>						
+									</div>										
+									<button type="submit" class="btn btn-success btn-block no-border-radius">UPDATE</button>
+									
+									
+								</form>			
+								<div style="padding-top: 30px;">
+									<button class="btn btn-info btn-block no-border-radius" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">Advanced</button>
+									<div class="collapse well" id="collapseExample">								
+										<!--<button onclick="sim.reset(); sim.animate();return false;" class="btn btn-success btn-block no-border-radius">LOCATE CENTER</button>-->
+										<button onclick="c=findCenter(); app.map.setCursor(c[0], c[1]);return false;" class="btn btn-success btn-block">LOCATE CENTER</button>							
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 					<div class="map col-lg-8  col-md-8 col-sm-7 col-xs-6">				
 						<div id="olmap" class="fill"></div>
+						<div id="showTweet" style="position: absolute; bottom: 0px; left: 0px; right: 0px;">
+							<form class="row no-pad" style="margin-bottom: 0px;">
+								<div class="col-lg-12 col-xs-12">
+									<div class="input-group">
+										<label class="input-group-addon">Text:</label>
+										<input class="text form-control no-border-radius disabled" disabled name="name" value="" placeholder="..."/>
+									</div>
+								</div>						
+							</form>
+						</div>
 					</div>
-				</div>
-				<div id="showTweet" style="position: absolute; bottom: 0px; left: 0px; right: 0px;">
-					<form class="row no-pad" style="margin-bottom: 0px;">
-						<div class="col-lg-12 col-xs-12">
-							<div class="input-group">
-								<label class="input-group-addon">Text:</label>
-								<input class="text form-control no-border-radius disabled" disabled name="name" value="" placeholder="..."/>
-							</div>
-						</div>						
-					</form>
-				</div>
+				</div>				
 			</div>						
 		</div>
 	</div>
 		
 		<div class="row no-pad pointsTableView">
 		</div>
-	</div>
-			
-	<script type="text/template" id="pointListItemTemplate">				
-		<h4 class="list-group-item-heading" style="margin-right: 20px;">
-			<a style="color: inherit;" href="#show/<%- data.model.get('id') %>"><%- data.model.get('name') %></a>
-			<span class="badge pull-right addLike" style="cursor: pointer;"><%- data.model.get('likesNo') %></span>
-		</h4>
-		<p><%- data.model.get('words') %></p>
-	
-	</script>
+	</div>			
 	
 	<script type="text/template" id="imageTemplate">								
 		<div class="thumbnail">
@@ -519,6 +529,24 @@
 			</div>
 		</div>
 	</script>	
+	
+	<script type="text/template" id="pointListItemTemplate">				
+		<!--<h4 class="list-group-item-heading" style="margin-right: 20px;">
+			<a style="color: inherit;" href="#show/<%- data.model.get('id') %>"><%- data.model.get('id') %></a>			
+		</h4>-->
+		<% if (!!data.data && _.isNumber(data.data.dist)) { %>
+		<p>
+			<span class="glyphicon glyphicon-chevron-right"></span><span> <%- data.model.get('placeName')%></span>
+			<code class="pull-right"><%- (new Number(data.data.dist)).toFixed(2) %>km</code>
+		</p>
+		<% } %>
+		<p><%= 
+			_.reduce(/http[a-zA-Z0-9\/\?\-_\:\.]+/.exec(_.escape(data.model.get('text'))), function(memo, url) {
+				return memo.replace(url, '<a target="_blank" href="' + url + '">' + url + '</a>')
+				}, data.model.get('text'))
+		%></p>
+			
+	</script>
 
   </body>
 </html>
