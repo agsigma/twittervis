@@ -444,8 +444,8 @@ app.get('/stream/:phrase/:exclude', function (request, response) {
 			if (regexp.test(json.text) && !exclude.test(json.text)) {
 				resNo++;
 				response.write('data: ' + JSON.stringify(json) + '\n\n');
-				console.log('--');
-				console.log(json.text);
+				// console.log('--');
+				// console.log(json.text);
 			} else if (false) {
 				response.write('data: ' + JSON.stringify({
 					'place' : json.place,
