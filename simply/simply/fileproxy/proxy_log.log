@@ -1,0 +1,14 @@
+
+
+ 
+06-17-15 03:55:49 | GET detected
+06-17-15 03:55:49 | Proxy could not resolve requested url - http://www.wp.pl.  Possible solution would be to update 'mustMatch', 'matchAll' or 'url' property in the configuration file.
+ 
+06-17-15 03:57:38 | GET detected
+06-17-15 03:57:38 | could not find driver
+ 
+06-17-15 03:58:10 | GET detected
+06-17-15 03:58:10 | could not find driver
+ 
+06-17-15 03:58:45 | GET detected
+06-17-15 03:58:45 | could not find driver
