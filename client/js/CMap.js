@@ -191,11 +191,18 @@ CMap.prototype = {
 		map = new ol.Map({
 			target: $(this.elem)[0],
 			layers: [
+				// osm
 				new ol.layer.Tile({
 					title: 'Mapa',
 					type: 'base',
-					source: new ol.source.MapQuest({layer: 'osm'})
-				}),				
+		         		source: new ol.source.OSM()
+		       		}),
+				// mapbox powiedzial ze nas nie lubi
+				// new ol.layer.Tile({
+				// 	title: 'Mapa',
+				// 	type: 'base',
+				// 	source: new ol.source.MapQuest({layer: 'osm'})
+				// }),				
 				heatmap,
 				pointsLayer,
 				clusters
