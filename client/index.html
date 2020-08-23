@@ -164,17 +164,41 @@
 			}
 		});						
 						
+		INSTAGRAM_DEBUG = true;
+
 		getInstagram = function(tweet) {
 			var dummyE, urls = [];
 			try {
 				_.each(tweet.entities.urls, function(url) {					
 					if (/instagram/.test(url.expanded_url)) {
-						urls.push(/\/([0-9a-zA-Z\-]*)\/$/.exec(url.expanded_url)[1]);
+						if (INSTAGRAM_DEBUG) console.log('INSTAGRAM !', url.expanded_url)
+						// twitter dodaje ?utm_source=twitter na koncu linka, trzeba zmienic to co bylo
+						urls.push(/instagram\.com\/p\/([0-9a-zA-Z\-]{5,10000})/.exec(url.expanded_url)[1]); 
+						// na to:
 					}
 				});
 			} catch(dummyE) {
+				console.error(dummyE);
 			}
 			return urls;
+		}
+
+		getTwitterImages = function(tweet) {
+			var dummyE, urls = [];
+			try {
+				_.each(tweet.entities.media, function(media) {					
+					if (media.type == "photo") {
+						if (INSTAGRAM_DEBUG) console.log('TWITTER !', media.media_url_https);
+						// twitter dodaje ?utm_source=twitter na koncu linka, trzeba zmienic to co bylo
+						urls.push(media.media_url_https); 
+						// na to:
+					}
+				});
+			} catch(dummyE) {
+				console.error(dummyE);
+			}
+
+			return urls.slice(0,1);
 		}
 						
 		queue = [];
@@ -187,6 +211,9 @@
 					placeName = tweet.place.name;
 					if (!tweet.isBlank) {
 						// instagram i zdjecia						
+						if (INSTAGRAM_DEBUG) console.log(tweet);
+						if (INSTAGRAM_DEBUG) console.log(tweet.entities.urls);
+
 						if (getInstagram(tweet).length) {
 							console.log('instagram: ');
 							_.each(getInstagram(tweet), function(url) {
@@ -197,7 +224,15 @@
 						} else {
 							instagram = null;
 						}
-						this.push({lon:lon,lat:lat,text:tweet.text,instagram:instagram,placeName:placeName});
+						var twitterImages = getTwitterImages(tweet);
+						var twitterImage = null;
+						if (twitterImages.length == 0) {
+							twitterImage = null;
+						} else {
+							twitterImage = twitterImages[0];
+						}
+						console.log('1. twitter image', twitterImage);
+						this.push({lon:lon,lat:lat,text:tweet.text,instagram:instagram,placeName:placeName,twitterImage:twitterImage});
 					}
 				}
 			} catch(dummyE) {
@@ -262,16 +297,22 @@
 			'addImage' : function(model, imageUrl) {
 				var img, self = this;
 				img = $('<div class="col-xs-6 col-xs-4 col-md-3" />');								
-				//img.css('height', '300px');
-				$.getJSON("redirect/http://instagr.am/p/" + model.get('instagram') + "/media/")
-					.done(function(res) {
-						var instagramSrc = null
-						if (!!res) {
-							instagramSrc = res;
-						}
-						img.html(self.imageTemplate({'model' : model, 'src' : instagramSrc}));
-						img.appendTo(self.$el);
-					});				
+				//img.css('height', '300px');				
+				console.log('imageUrl', model, imageUrl);
+				if (!imageUrl) {
+					$.getJSON("redirect/http://instagr.am/p/" + model.get('instagram') + "/media/")
+						.done(function(res) {
+							var instagramSrc = null
+							if (!!res) {
+								instagramSrc = res;
+							}
+							img.html(self.imageTemplate({'model' : model, 'src' : instagramSrc}));
+							img.appendTo(self.$el);
+						});				
+				} else {
+					img.html(self.imageTemplate({'model' : model, 'src' : imageUrl}));
+					img.appendTo(self.$el);
+				}
 				//this.$el.find('a').fancybox();
 			},
 			'render' : function() {
@@ -417,6 +458,9 @@
 				if (!!model.get('instagram')) {
 					app.imagesView.addImage(model);
 				}
+				if (!!model.get('twitterImage')) {
+					app.imagesView.addImage(model, model.get('twitterImage'));
+				}				
 			});
 			
 			app.ctrl.on('showPoint', function(modelID) {				

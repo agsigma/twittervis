@@ -1,11 +1,11 @@
 // Load the http module to create an http server.
 var http = require('http');
 var express = require('express');
-var OAuth = require('oauth');
+// var OAuth = require('oauth');
 var _ = require('underscore');
 var crypto= require('crypto');
 var request = require('request');
-var redis   = require('redis');
+// var redis   = require('redis');
 var Backbone = require('backbone');
 
 
@@ -398,7 +398,7 @@ app.get('/stream/:phrase/:exclude', function (request, response) {
 	phrase = phrase || "new\s*york";
 	//phrase = phrase || /london/i;		
 	
-	request.socket.setTimeout(Infinity);
+	request.socket.setTimeout(99999999 || Infinity);
 	response.writeHead(200, {
 		"Content-Type": "text/event-stream", 
 		'Access-Control-Allow-Origin': '*',
@@ -512,6 +512,6 @@ app.use('/redirect', function(req, response, next) {
 app.use(express.static(__dirname + '/client'));
 
 
-app.listen(process.env.OPENSHIFT_NODEJS_PORT || 8000, process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1');
+app.listen(8000/*, process.env.OPENSHIFT_NODEJS_IP || '127.0.0.1'*/);
 // Put a friendly message on the terminal
 console.log("Server running at 8000/");
